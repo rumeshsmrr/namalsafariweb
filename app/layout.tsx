@@ -5,7 +5,7 @@ import "./globals.css";
 // Import the GoogleAnalytics component
 import { GoogleAnalytics } from "@next/third-parties/google";
 
-import Footer from "./Components/Footer";
+import ConditionalFooter from "./Components/ConditionalFooter";
 import ScrollToTop from "./Components/ScrollToTop";
 import WhatsAppChatButton from "./Components/WhatsAppChatButton";
 
@@ -58,7 +58,7 @@ export default function RootLayout({
         <ScrollToTop />
         <WhatsAppChatButton />
         {children}
-        <Footer />
+        <ConditionalFooter />
 
         <GoogleAnalytics gaId="G-VLXEQQL4J7" />
       </body>
