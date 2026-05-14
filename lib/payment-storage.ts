@@ -315,6 +315,73 @@ export function listPaymentRequests(): PaymentRequest[] {
   return rows.map((r) => mapRequest(r)!);
 }
 
+export interface ListPaymentRequestsOptions {
+  page: number;
+  limit: number;
+  search?: string;
+  status?: PaymentStatus | "";
+}
+
+export interface PaginatedPaymentRequests {
+  data: PaymentRequest[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export function listPaymentRequestsPaginated(
+  options: ListPaymentRequestsOptions,
+): PaginatedPaymentRequests {
+  const db = getDb();
+  const { page, limit } = options;
+  const offset = (page - 1) * limit;
+
+  const conditions: string[] = [];
+  const args: unknown[] = [];
+
+  if (options.search) {
+    const like = `%${options.search}%`;
+    conditions.push(
+      "(customer_name LIKE ? OR package_name LIKE ? OR email LIKE ? OR phone LIKE ?)",
+    );
+    args.push(like, like, like, like);
+  }
+  if (options.status) {
+    conditions.push("status = ?");
+    args.push(options.status);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  const countRow = db
+    .prepare(`SELECT COUNT(*) AS count FROM payment_requests ${where}`)
+    .get(...(args as [])) as { count: number };
+
+  const rows = db
+    .prepare(
+      `SELECT * FROM payment_requests ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+    )
+    .all(...(args as []), limit, offset) as DbPaymentRequestRow[];
+
+  const total = countRow.count;
+  return {
+    data: rows.map((r) => mapRequest(r)!),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+export function deletePaymentRequest(id: string): void {
+  const db = getDb();
+  db.transaction(() => {
+    db.prepare("DELETE FROM payments WHERE payment_request_id = ?").run(id);
+    db.prepare("DELETE FROM payment_requests WHERE id = ?").run(id);
+  })();
+}
+
 export function updatePaymentRequestStatus(
   id: string,
   status: PaymentStatus,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { auth } from "@/auth";
 import {
   getPaymentRequestById,
   updatePaymentRequestStatus,
@@ -15,7 +15,7 @@ export async function POST(
   request: NextRequest,
   ctx: { params: Promise<{ id: string }> },
 ) {
-  const session = await getSession();
+  const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -46,7 +46,7 @@ export async function POST(
       status: "SUCCESS",
       amount: pr.amount,
       currency: pr.currency,
-      rawResponse: JSON.stringify({ manual: true, by: session.username }),
+      rawResponse: JSON.stringify({ manual: true, by: session.user?.email ?? "admin" }),
     });
   } else {
     updatePaymentRequestStatus(pr.id, newStatus);

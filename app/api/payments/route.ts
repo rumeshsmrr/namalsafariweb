@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { auth } from "@/auth";
 import {
   createPaymentRequest,
-  listPaymentRequests,
+  listPaymentRequestsPaginated,
   PARKS,
   SAFARI_TYPES,
   TIME_SLOTS,
@@ -13,20 +13,31 @@ import {
   type TimeSlot,
   type MealPlan,
   type MealPreference,
+  type PaymentStatus,
 } from "@/lib/payment-storage";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getSession();
+export async function GET(request: NextRequest) {
+  const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json(listPaymentRequests());
+
+  const { searchParams } = request.nextUrl;
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "15", 10)));
+  const search = searchParams.get("search")?.trim() || undefined;
+  const statusParam = searchParams.get("status")?.trim() || undefined;
+  const status = statusParam as PaymentStatus | undefined;
+
+  return NextResponse.json(
+    listPaymentRequestsPaginated({ page, limit, search, status }),
+  );
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getSession();
+  const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -141,7 +152,7 @@ export async function POST(request: NextRequest) {
       amount: amountMinor,
       currency: cur,
       expiresInHours: expiresInHours ? Number(expiresInHours) : undefined,
-      createdBy: session.username,
+      createdBy: session.user?.email ?? session.user?.name ?? "admin",
     });
 
     return NextResponse.json(pr, { status: 201 });

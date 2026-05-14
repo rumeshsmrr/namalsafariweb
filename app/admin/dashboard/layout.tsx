@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { FiLayout, FiFileText, FiPlus, FiLogOut, FiMenu, FiX, FiCreditCard } from 'react-icons/fi';
+import { useSession, signOut } from 'next-auth/react';
+import Image from 'next/image';
 
 function EnvBadge() {
   const env = process.env.NEXT_PUBLIC_APP_ENV;
@@ -29,46 +31,22 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
-  const checkAuth = async () => {
-    try {
-      const res = await fetch('/api/auth/check');
-      const data = await res.json();
-      if (data.authenticated) {
-        setAuthenticated(true);
-      } else {
-        // Use replace instead of push to avoid adding to history
-        router.replace('/admin/login');
-        return; // Exit early
-      }
-    } catch {
-      router.replace('/admin/login');
-      return; // Exit early
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    checkAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/admin/login');
-    } catch (error) {
-      console.error('Logout error:', error);
+    if (status === 'unauthenticated') {
+      router.replace('/admin/login');
     }
+  }, [status, router]);
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: '/admin/login' });
   };
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gray-50 flex">
         {/* Skeleton sidebar */}
@@ -108,7 +86,7 @@ export default function AdminLayout({
     );
   }
 
-  if (!authenticated) {
+  if (status !== 'authenticated') {
     return null;
   }
 
@@ -146,6 +124,23 @@ export default function AdminLayout({
               <h2 className="text-2xl font-bold text-primary">Admin Panel</h2>
               <p className="text-sm text-gray-500 mt-1">Blog & Payments</p>
               <EnvBadge />
+              {session?.user && (
+                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                  {session.user.image && (
+                    <Image
+                      src={session.user.image}
+                      alt={session.user.name ?? 'Admin'}
+                      width={32}
+                      height={32}
+                      className="rounded-full"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{session.user.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{session.user.email}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Navigation */}
