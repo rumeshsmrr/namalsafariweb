@@ -6,6 +6,7 @@ import {
   recordPaymentAndSetStatus,
   type PaymentStatus,
 } from "@/lib/payment-storage";
+import { sendBookingConfirmation } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -39,15 +40,26 @@ export async function POST(
   }
 
   if (newStatus === "PAID") {
+    const txnId = `manual-${Date.now()}`;
+    const paidAt = new Date().toISOString();
     // Record a manual payment entry so transaction history is populated.
-    recordPaymentAndSetStatus({
+    const { recorded } = recordPaymentAndSetStatus({
       paymentRequestId: pr.id,
-      transactionId: `manual-${Date.now()}`,
+      transactionId: txnId,
       status: "SUCCESS",
       amount: pr.amount,
       currency: pr.currency,
       rawResponse: JSON.stringify({ manual: true, by: session.user?.email ?? "admin" }),
     });
+    if (recorded) {
+      sendBookingConfirmation({
+        pr,
+        transactionId: txnId,
+        paidAt,
+      }).catch((err) => {
+        console.error("[admin] confirmation email error:", err);
+      });
+    }
   } else {
     updatePaymentRequestStatus(pr.id, newStatus);
   }
