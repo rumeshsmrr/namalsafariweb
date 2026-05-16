@@ -9,6 +9,7 @@ import {
   verifyWebhookSignature,
   type OnePayWebhookPayload,
 } from "@/lib/onepay";
+import { sendBookingConfirmation } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +117,18 @@ export async function POST(request: NextRequest) {
       console.log(
         `[webhook] ✓ payment recorded  ref=${reference}  txn=${txnId}  status=${gatewayStatus}`,
       );
+
+      // Send confirmation email on successful payment (fire-and-forget —
+      // a failed email must never cause a non-200 webhook response).
+      if (gatewayStatus === "SUCCESS") {
+        sendBookingConfirmation({
+          pr,
+          transactionId: txnId,
+          paidAt: new Date().toISOString(),
+        }).catch((err) => {
+          console.error("[webhook] confirmation email error:", err);
+        });
+      }
     } else {
       console.log(
         `[webhook] duplicate webhook ignored  ref=${reference}  txn=${txnId}`,
