@@ -57,9 +57,10 @@ export function buildBookingConfirmationEmail(data: BookingEmailData): {
   html: string;
 } {
   const { pr, transactionId, paidAt } = data;
-  const baseUrl =
-    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://nimalsafari.com";
-  const logoUrl = `${baseUrl}/Images/logo.png`;
+  // Email images must use a public HTTPS URL (not localhost).
+  const emailAssetBase =
+    process.env.EMAIL_PUBLIC_URL?.replace(/\/$/, "") ?? "https://nimalsafari.com";
+  const logoUrl = `${emailAssetBase}/Images/logo.png`;
 
   const parkLabel = pr.park ? PARK_LABELS[pr.park] : null;
   const safariTypeLabel = pr.safariType
@@ -101,9 +102,23 @@ export function buildBookingConfirmationEmail(data: BookingEmailData): {
           <!-- ══ HEADER ══ -->
           <tr>
             <td style="background-color:#011d07;padding:36px 40px;text-align:center;">
-              <img src="${logoUrl}" alt="Nimal Safari" height="64"
-                style="display:block;margin:0 auto 14px auto;border:0;outline:none;" />
-              <p style="margin:0;color:#fab226;font-family:Arial,sans-serif;font-size:11px;
+              <p style="margin:0 0 16px 0;font-family:Arial,Helvetica,sans-serif;font-size:32px;
+                font-weight:700;letter-spacing:0.5px;line-height:1.2;">
+                <span style="color:#ffffff;">Nimal</span><span style="color:#fab226;">Safari</span>
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 12px auto;">
+                <tr>
+                  <td style="background-color:#ffffff;padding:12px 20px;border-radius:12px;text-align:center;">
+                    <img src="${logoUrl}" alt="" width="180" height="64"
+                      style="display:block;margin:0 auto;border:0;outline:none;max-width:180px;height:auto;" />
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 14px 0;color:#f2fff5;font-family:Arial,Helvetica,sans-serif;
+                font-size:14px;font-weight:600;letter-spacing:3px;text-transform:uppercase;">
+                NimalSafari
+              </p>
+              <p style="margin:0;color:#fab226;font-family:Arial,Helvetica,sans-serif;font-size:11px;
                 letter-spacing:4px;text-transform:uppercase;font-weight:700;">
                 Wildlife Safari · Sri Lanka
               </p>
