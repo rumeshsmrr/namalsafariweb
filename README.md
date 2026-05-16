@@ -84,32 +84,41 @@ cd namalsafariweb
 npm install
 ```
 
-### 3. Configure environment variables
+### 3. Environment variables (one file)
 
-Create a `.env.local` file in the project root. Copy the template below and fill in your values:
+Create **`.env.local`** in the project root — this is the **only** env file on your machine (gitignored). Do not commit it.
 
 ```env
-# App
 APP_ENV=development
 NEXT_PUBLIC_APP_ENV=development
 PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_WHATSAPP_NUMBER=94767627295
 
-# Admin credentials
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-secure-password
+GOOGLE_CLIENT_ID=<from-google-cloud-console>
+GOOGLE_CLIENT_SECRET=<from-google-cloud-console>
+AUTH_SECRET=<openssl rand -base64 32>
+ADMIN_ALLOWED_EMAILS=your@gmail.com
 
-# JWT (change this in production — use a long random string)
-JWT_SECRET=your-secret-key-change-in-production
+RESEND_API_KEY=re_...
+EMAIL_FROM=Nimal Safari <bookings@nimalsafari.com>
 
-# Database (optional — defaults to ./data/app.db)
-# DATABASE_PATH=
-
-# OnePay payment gateway (sandbox credentials)
-ONEPAY_APP_ID=your-onepay-app-id
-ONEPAY_APP_TOKEN=your-onepay-app-token
-ONEPAY_HASH_SALT=your-onepay-hash-salt
+ONEPAY_APP_ID=<sandbox-app-id>
+ONEPAY_APP_TOKEN=<sandbox-app-token>
+ONEPAY_HASH_SALT=<sandbox-hash-salt>
 ONEPAY_ALLOW_HTTP_REDIRECT=1
 ```
+
+| Variable | Required for |
+|---|---|
+| `APP_ENV` / `NEXT_PUBLIC_APP_ENV` | `development` on laptop; `qa` or `production` on servers |
+| `PUBLIC_APP_URL` | Payment redirects and shared links |
+| `NEXT_PUBLIC_WHATSAPP_NUMBER` | WhatsApp buttons (digits only, no `+`) |
+| `GOOGLE_*` + `AUTH_SECRET` + `ADMIN_ALLOWED_EMAILS` | Admin login (Google OAuth) |
+| `RESEND_*` | Payment/booking emails (optional in dev) |
+| `ONEPAY_*` | Payments (sandbox creds in dev) |
+| `DATABASE_PATH` | Optional locally (defaults to `./data/app.db`) |
+
+**QA / production servers:** create a single **`.env`** file on the VPS (same variables, different values). Set `APP_ENV=qa` or `APP_ENV=production`. See [docs/PAYMENTS.md](docs/PAYMENTS.md) for OnePay and webhook details.
 
 > **Note:** The `data/` folder and `app.db` SQLite database are created automatically on the first server start. You do not need to run any migrations manually.
 
@@ -145,14 +154,9 @@ https://nimalsafari.com/admin/login      (production)
 
 ### Credentials
 
-Admin credentials are set via environment variables in `.env.local`:
+Admin access uses **Google sign-in**. In `.env.local`, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET`, and add your Gmail to `ADMIN_ALLOWED_EMAILS` (comma-separated for multiple admins).
 
-```
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=<your-password>
-```
-
-> Never commit `.env.local` to version control. Credentials are managed entirely through environment variables — there is no seed file or default hard-coded password.
+> Never commit `.env.local` or server `.env` to version control.
 
 ### Dashboard Features
 
@@ -197,21 +201,30 @@ Then update `PUBLIC_APP_URL` in `.env.local` to the ngrok HTTPS URL and configur
 
 ## Production Deployment
 
-### Environment variables to set on your server / hosting platform
+### Environment variables on the server
+
+Create one **`.env`** file on the VPS (not in git). Use live credentials and `APP_ENV=production`. Rebuild after changing any `NEXT_PUBLIC_*` variable.
 
 ```env
 APP_ENV=production
 NEXT_PUBLIC_APP_ENV=production
 PUBLIC_APP_URL=https://nimalsafari.com
+NEXT_PUBLIC_WHATSAPP_NUMBER=94767627295
 
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=<strong-password>
-JWT_SECRET=<long-random-secret>
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+AUTH_SECRET=...
+ADMIN_ALLOWED_EMAILS=admin@gmail.com
+
+RESEND_API_KEY=re_...
+EMAIL_FROM=Nimal Safari <bookings@nimalsafari.com>
+
+DATABASE_PATH=/var/lib/nimalsafari/data/app.db
 
 ONEPAY_APP_ID=<live-app-id>
 ONEPAY_APP_TOKEN=<live-app-token>
 ONEPAY_HASH_SALT=<live-hash-salt>
-# Remove ONEPAY_ALLOW_HTTP_REDIRECT in production
+# Do not set ONEPAY_ALLOW_HTTP_REDIRECT in production
 ```
 
 ### Build & start

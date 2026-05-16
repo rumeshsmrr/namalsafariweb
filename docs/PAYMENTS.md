@@ -46,15 +46,15 @@ from `APP_ENV`, so you never have to change `ONEPAY_API_URL` by hand.
 A missing/unknown `APP_ENV` defaults to `development` → sandbox. That way a
 misconfigured server can never accidentally charge real cards.
 
-### Env file layout
+### Env file layout (one file per machine)
 
-Templates live in the repo root:
+| Machine | File | `APP_ENV` |
+|---------|------|-----------|
+| Your laptop (`npm run dev`) | `.env.local` | `development` |
+| QA / staging VPS | `.env` | `qa` |
+| Production VPS | `.env` | `production` |
 
-- `.env.development.example` → copy to `.env.local` on dev machines.
-- `.env.qa.example`          → copy to `.env` on the QA server.
-- `.env.production.example`  → copy to `.env` on the production VPS.
-
-Next.js loads `.env.local` only in dev; on QA/production it loads `.env`.
+All env files are gitignored. Variable list and placeholders are in the root **README.md** → *Environment variables*.
 
 ### Required variables
 
@@ -123,8 +123,7 @@ If sandbox testing returns a hash-mismatch error, adjust those three spots
 ## Local development
 
 ```bash
-cp .env.development.example .env.local
-# fill in OnePay sandbox credentials
+# Create .env.local in the project root (see README.md for all variables)
 npm run dev
 ```
 
@@ -134,7 +133,7 @@ Pay Now will return a 502. That's expected.
 
 ## Going to production — change checklist
 
-1. On the VPS: `cp .env.production.example .env` and fill real values.
+1. On the VPS: create `.env` with production values (see README.md).
 2. Confirm `APP_ENV=production` at the top of `.env`.
 3. Confirm OnePay credentials are the **live** ones, not sandbox.
 4. `npm ci && npm run build && npm start` (or PM2/systemd).
