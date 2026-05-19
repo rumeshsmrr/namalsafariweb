@@ -29,7 +29,6 @@ export async function GET(
     park: pr.park,
     safariType: pr.safariType,
     timeSlot: pr.timeSlot,
-    mealPlan: pr.mealPlan,
     mealPreference: pr.mealPreference,
     safariDate: pr.safariDate,
     guests: pr.guests,

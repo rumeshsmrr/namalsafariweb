@@ -5,7 +5,6 @@ import {
   PARK_LABELS,
   SAFARI_TYPE_LABELS,
   TIME_SLOT_LABELS,
-  MEAL_PLAN_LABELS,
   MEAL_PREFERENCE_LABELS,
 } from "@/lib/payment-storage";
 import PayNowButton from "./PayNowButton";
@@ -130,14 +129,6 @@ export default async function PayPage(
                   <dt className="text-sm text-gray-500">Guests</dt>
                   <dd className="text-sm text-gray-800 text-right">
                     {pr.guests}
-                  </dd>
-                </div>
-              )}
-              {pr.mealPlan && pr.mealPlan !== "NONE" && (
-                <div className="py-2 grid grid-cols-2 gap-2">
-                  <dt className="text-sm text-gray-500">Meal plan</dt>
-                  <dd className="text-sm text-gray-800 text-right">
-                    {MEAL_PLAN_LABELS[pr.mealPlan]}
                   </dd>
                 </div>
               )}

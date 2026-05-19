@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  normalizeSriLankanPhone,
+  SRI_LANKA_PHONE_FORMAT_ERROR,
+} from "@/lib/phone";
 
 const PARK_OPTIONS = [
   { value: "YALA", label: "Yala National Park" },
@@ -76,6 +80,11 @@ export default function CreatePaymentLinkPage() {
       setError("Please select a safari time (Morning / Evening / Full-Day).");
       return;
     }
+    const normalizedPhone = normalizeSriLankanPhone(form.phone);
+    if (!normalizedPhone) {
+      setError(SRI_LANKA_PHONE_FORMAT_ERROR);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -84,6 +93,7 @@ export default function CreatePaymentLinkPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          phone: normalizedPhone,
           park: form.park || undefined,
           safariType: form.safariType || undefined,
           timeSlot: form.timeSlot || undefined,
@@ -161,15 +171,24 @@ export default function CreatePaymentLinkPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone
+                Phone *
               </label>
               <input
+                type="tel"
                 name="phone"
                 value={form.phone}
                 onChange={update}
+                required
+                inputMode="tel"
+                pattern="\+94[1-9][0-9]{8}"
+                title="Use +94 followed by the number without the initial 0, e.g. +94771234567"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-transparent outline-none"
-                placeholder="+94 77 123 4567"
+                placeholder="+94771234567"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Use country code format, e.g. +94771234567. Do not use
+                0771234567 or +940771234567.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

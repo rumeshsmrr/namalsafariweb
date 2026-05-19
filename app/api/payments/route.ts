@@ -6,15 +6,17 @@ import {
   PARKS,
   SAFARI_TYPES,
   TIME_SLOTS,
-  MEAL_PLANS,
   MEAL_PREFERENCES,
   type Park,
   type SafariType,
   type TimeSlot,
-  type MealPlan,
   type MealPreference,
   type PaymentStatus,
 } from "@/lib/payment-storage";
+import {
+  normalizeSriLankanPhone,
+  SRI_LANKA_PHONE_FORMAT_ERROR,
+} from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +54,6 @@ export async function POST(request: NextRequest) {
       park,
       safariType,
       timeSlot,
-      mealPlan,
       mealPreference,
       safariDate,
       guests,
@@ -65,6 +66,14 @@ export async function POST(request: NextRequest) {
     if (!customerName || typeof customerName !== "string") {
       return NextResponse.json(
         { error: "customerName is required" },
+        { status: 400 },
+      );
+    }
+    const normalizedPhone =
+      typeof phone === "string" ? normalizeSriLankanPhone(phone) : null;
+    if (!normalizedPhone) {
+      return NextResponse.json(
+        { error: SRI_LANKA_PHONE_FORMAT_ERROR },
         { status: 400 },
       );
     }
@@ -123,12 +132,6 @@ export async function POST(request: NextRequest) {
       "timeSlot",
     );
     if (validTimeSlot instanceof NextResponse) return validTimeSlot;
-    const validMealPlan = validateEnum<MealPlan>(
-      mealPlan,
-      MEAL_PLANS,
-      "mealPlan",
-    );
-    if (validMealPlan instanceof NextResponse) return validMealPlan;
     const validMealPref = validateEnum<MealPreference>(
       mealPreference,
       MEAL_PREFERENCES,
@@ -139,12 +142,11 @@ export async function POST(request: NextRequest) {
     const pr = createPaymentRequest({
       customerName: customerName.trim(),
       email: email?.trim() || undefined,
-      phone: phone?.trim() || undefined,
+      phone: normalizedPhone,
       packageName: packageName?.trim() || undefined,
       park: validPark,
       safariType: validSafariType,
       timeSlot: validTimeSlot,
-      mealPlan: validMealPlan,
       mealPreference: validMealPref,
       safariDate: safariDate?.trim() || undefined,
       guests: guests ? Number(guests) : undefined,

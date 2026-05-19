@@ -2,7 +2,6 @@ import {
   PARK_LABELS,
   SAFARI_TYPE_LABELS,
   TIME_SLOT_LABELS,
-  MEAL_PLAN_LABELS,
   MEAL_PREFERENCE_LABELS,
   type PaymentRequest,
 } from "@/lib/payment-storage";
@@ -67,7 +66,6 @@ export function buildBookingConfirmationEmail(data: BookingEmailData): {
     ? SAFARI_TYPE_LABELS[pr.safariType]
     : null;
   const timeSlotLabel = pr.timeSlot ? TIME_SLOT_LABELS[pr.timeSlot] : null;
-  const mealPlanLabel = pr.mealPlan ? MEAL_PLAN_LABELS[pr.mealPlan] : null;
   const mealPrefLabel =
     pr.mealPreference && pr.mealPreference !== "NONE"
       ? MEAL_PREFERENCE_LABELS[pr.mealPreference]
@@ -190,7 +188,6 @@ export function buildBookingConfirmationEmail(data: BookingEmailData): {
                 ${pr.safariDate ? row("Safari Date", formatDate(pr.safariDate)) : row("Safari Date", '<span style="color:#999;">To be confirmed — our team will contact you</span>')}
                 ${timeSlotLabel ? row("Time Slot", timeSlotLabel) : ""}
                 ${pr.guests != null ? row("Number of Guests", String(pr.guests)) : ""}
-                ${mealPlanLabel && pr.mealPlan !== "NONE" ? row("Meal Plan", mealPlanLabel) : ""}
                 ${mealPrefLabel ? row("Meal Preference", mealPrefLabel) : ""}
                 ${pr.packageName ? row("Package", pr.packageName) : ""}
                 ${pr.notes ? row("Special Notes", pr.notes) : ""}

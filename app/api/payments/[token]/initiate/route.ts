@@ -4,6 +4,7 @@ import {
   refreshExpiryIfNeeded,
 } from "@/lib/payment-storage";
 import { createCheckoutLink } from "@/lib/onepay";
+import { normalizeSriLankanPhone } from "@/lib/phone";
 
 export const dynamic = "force-dynamic";
 
@@ -19,18 +20,10 @@ function contactForOnePay(pr: { email: string | null; phone: string | null }) {
       : (process.env.ONEPAY_PLACEHOLDER_EMAIL?.trim() ??
         "bookings@nimalsafari.com");
 
-  let rawPhone = pr.phone?.replace(/\s/g, "") ?? "";
-  if (rawPhone.startsWith("0") && rawPhone.length >= 9) {
-    rawPhone = `+94${rawPhone.slice(1)}`;
-  }
-  if (rawPhone && !rawPhone.startsWith("+")) {
-    rawPhone = `+${rawPhone}`;
-  }
-
   const phone =
-    rawPhone.length >= 10
-      ? rawPhone
-      : (process.env.ONEPAY_PLACEHOLDER_PHONE?.trim() ?? "+940000000000");
+    normalizeSriLankanPhone(pr.phone ?? "") ??
+    normalizeSriLankanPhone(process.env.ONEPAY_PLACEHOLDER_PHONE ?? "") ??
+    "+94767627295";
 
   return { email, phone };
 }

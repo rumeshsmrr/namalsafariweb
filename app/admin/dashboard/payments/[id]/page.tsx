@@ -6,7 +6,6 @@ import {
   PARK_LABELS,
   SAFARI_TYPE_LABELS,
   TIME_SLOT_LABELS,
-  MEAL_PLAN_LABELS,
   MEAL_PREFERENCE_LABELS,
 } from "@/lib/payment-storage";
 import PaymentLinkCopy from "./PaymentLinkCopy";
@@ -113,10 +112,6 @@ export default async function PaymentDetailPage(
             value={pr.safariDate ?? "—"}
           />
           <Row label="Guests" value={pr.guests ?? "—"} />
-          <Row
-            label="Meal plan"
-            value={pr.mealPlan ? MEAL_PLAN_LABELS[pr.mealPlan] : "—"}
-          />
           <Row
             label="Meal preference"
             value={
