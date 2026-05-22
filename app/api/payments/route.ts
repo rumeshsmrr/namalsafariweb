@@ -17,7 +17,7 @@ import {
   normalizeSriLankanPhone,
   SRI_LANKA_PHONE_FORMAT_ERROR,
 } from "@/lib/phone";
-import { formatDatabaseError } from "@/lib/db-error";
+import { apiErrorFromUnknown } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,9 +35,14 @@ export async function GET(request: NextRequest) {
   const statusParam = searchParams.get("status")?.trim() || undefined;
   const status = statusParam as PaymentStatus | undefined;
 
-  return NextResponse.json(
-    listPaymentRequestsPaginated({ page, limit, search, status }),
-  );
+  try {
+    return NextResponse.json(
+      listPaymentRequestsPaginated({ page, limit, search, status }),
+    );
+  } catch (err) {
+    console.error("List payment requests error:", err);
+    return NextResponse.json(apiErrorFromUnknown(err), { status: 500 });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -162,10 +167,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(pr, { status: 201 });
   } catch (err) {
     console.error("Create payment request error:", err);
-    const message = formatDatabaseError(err);
-    return NextResponse.json(
-      { error: message },
-      { status: 500 },
-    );
+    return NextResponse.json(apiErrorFromUnknown(err), { status: 500 });
   }
 }

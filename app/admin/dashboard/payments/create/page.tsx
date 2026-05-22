@@ -39,6 +39,7 @@ export default function CreatePaymentLinkPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [form, setForm] = useState({
     customerName: "",
     email: "",
@@ -67,6 +68,7 @@ export default function CreatePaymentLinkPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setErrorDetail(null);
 
     if (!form.park) {
       setError("Please select a park.");
@@ -107,10 +109,21 @@ export default function CreatePaymentLinkPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to create");
+      if (!res.ok) {
+        setError(data.error || "Failed to create payment link");
+        setErrorDetail(
+          typeof data.detail === "string"
+            ? data.detail
+            : data.name
+              ? `(${data.name})`
+              : null,
+        );
+        return;
+      }
       router.push(`/admin/dashboard/payments/${data.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
+      setErrorDetail(null);
     } finally {
       setLoading(false);
     }
@@ -133,8 +146,13 @@ export default function CreatePaymentLinkPage() {
         className="bg-white rounded-xl shadow-md border border-gray-200 p-6 space-y-6"
       >
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded space-y-2">
+            <p className="font-medium">{error}</p>
+            {errorDetail && (
+              <pre className="text-xs whitespace-pre-wrap break-all text-red-800/90 max-h-48 overflow-auto">
+                {errorDetail}
+              </pre>
+            )}
           </div>
         )}
 

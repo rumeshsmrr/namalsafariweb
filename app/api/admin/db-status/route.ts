@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getDb, usesEphemeralDatabase } from "@/lib/db";
-import { formatDatabaseError } from "@/lib/db-error";
+import { apiErrorFromUnknown } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,8 +28,8 @@ export async function GET() {
     return NextResponse.json(
       {
         ok: false,
-        error: formatDatabaseError(err),
         ephemeral: usesEphemeralDatabase(),
+        ...apiErrorFromUnknown(err),
       },
       { status: 500 },
     );

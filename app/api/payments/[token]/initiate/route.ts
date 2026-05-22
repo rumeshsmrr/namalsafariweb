@@ -5,6 +5,7 @@ import {
 } from "@/lib/payment-storage";
 import { createCheckoutLink } from "@/lib/onepay";
 import { normalizeSriLankanPhone } from "@/lib/phone";
+import { apiErrorFromUnknown } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -98,16 +99,6 @@ export async function POST(
     });
   } catch (err) {
     console.error(`[initiate] ✗ failed  ref=${pr.shortRef}`, err);
-    const message =
-      err instanceof Error ? err.message : "Could not start payment.";
-    return NextResponse.json(
-      {
-        error:
-          message.includes("OnePay") || message.includes("HTTPS")
-            ? message
-            : "Could not start payment. Please try again or contact the operator.",
-      },
-      { status: 502 },
-    );
+    return NextResponse.json(apiErrorFromUnknown(err), { status: 502 });
   }
 }
