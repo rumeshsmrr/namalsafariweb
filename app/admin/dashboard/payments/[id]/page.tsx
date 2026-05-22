@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { usesEphemeralDatabase } from "@/lib/db";
 import {
   getPaymentRequestById,
   getPaymentsForRequest,
@@ -43,7 +43,44 @@ export default async function PaymentDetailPage(
 ) {
   const { id } = await props.params;
   const pr = getPaymentRequestById(id);
-  if (!pr) notFound();
+  if (!pr) {
+    const ephemeral = usesEphemeralDatabase();
+    return (
+      <div className="space-y-4 max-w-2xl">
+        <h1 className="text-2xl font-bold text-primary">Payment not found</h1>
+        <p className="text-gray-600">
+          No payment with ID <span className="font-mono text-sm">{id}</span> exists
+          in the database on this server.
+        </p>
+        {ephemeral ? (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-lg text-sm space-y-2">
+            <p className="font-semibold">Likely cause: Vercel + SQLite</p>
+            <p>
+              On Vercel, payment data is stored in temporary storage that is not
+              shared between requests. The link may have been created successfully,
+              but this page runs on a different server instance with an empty
+              database.
+            </p>
+            <p>
+              For reliable admin payments, deploy on your VPS with a persistent{" "}
+              <code className="text-xs">DATABASE_PATH</code>, or copy the customer
+              payment link immediately after creating it (before leaving the form).
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">
+            It may have been deleted, or the ID in the URL is wrong.
+          </p>
+        )}
+        <Link
+          href="/admin/dashboard/payments"
+          className="inline-block text-accent font-semibold hover:underline"
+        >
+          ← Back to payments
+        </Link>
+      </div>
+    );
+  }
 
   const payments = getPaymentsForRequest(pr.id);
 

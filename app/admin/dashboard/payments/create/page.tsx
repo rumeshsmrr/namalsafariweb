@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import PaymentLinkCopy from "../[id]/PaymentLinkCopy";
 import {
   normalizeSriLankanPhone,
   SRI_LANKA_PHONE_FORMAT_ERROR,
@@ -35,11 +36,18 @@ const MEAL_PREFERENCE_OPTIONS = [
   { value: "NON_VEG", label: "Non-Vegetarian" },
 ] as const;
 
+type CreatedPayment = {
+  id: string;
+  token: string;
+  customerName: string;
+};
+
 export default function CreatePaymentLinkPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [created, setCreated] = useState<CreatedPayment | null>(null);
+  const [publicPayUrl, setPublicPayUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     customerName: "",
     email: "",
@@ -69,6 +77,8 @@ export default function CreatePaymentLinkPage() {
     e.preventDefault();
     setError(null);
     setErrorDetail(null);
+    setCreated(null);
+    setPublicPayUrl(null);
 
     if (!form.park) {
       setError("Please select a park.");
@@ -120,7 +130,14 @@ export default function CreatePaymentLinkPage() {
         );
         return;
       }
-      router.push(`/admin/dashboard/payments/${data.id}`);
+      const base =
+        typeof window !== "undefined" ? window.location.origin : "";
+      setCreated({
+        id: data.id,
+        token: data.token,
+        customerName: data.customerName,
+      });
+      setPublicPayUrl(`${base}/pay/${data.token}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setErrorDetail(null);
@@ -140,6 +157,44 @@ export default function CreatePaymentLinkPage() {
           can share with the customer manually (WhatsApp, email, SMS).
         </p>
       </div>
+
+      {created && publicPayUrl && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6 space-y-4">
+          <h2 className="text-lg font-bold text-green-900">
+            Payment link created for {created.customerName}
+          </h2>
+          <p className="text-sm text-green-800">
+            Copy the link below and send it to the customer (WhatsApp, email, SMS).
+            On Vercel hosting, open this page again from the list may not work — save
+            the link now.
+          </p>
+          <PaymentLinkCopy url={publicPayUrl} />
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Link
+              href={`/admin/dashboard/payments/${created.id}`}
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              View details (may not load on Vercel)
+            </Link>
+            <Link
+              href="/admin/dashboard/payments"
+              className="text-sm font-semibold text-gray-600 hover:underline"
+            >
+              All payments
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setCreated(null);
+                setPublicPayUrl(null);
+              }}
+              className="text-sm font-semibold text-gray-600 hover:underline"
+            >
+              Create another
+            </button>
+          </div>
+        </div>
+      )}
 
       <form
         onSubmit={submit}
