@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { usesEphemeralDatabase } from "@/lib/db";
+import { usesEphemeralStorage } from "@/lib/data-path";
 import {
   getPaymentRequestById,
   getPaymentsForRequest,
@@ -44,7 +44,7 @@ export default async function PaymentDetailPage(
   const { id } = await props.params;
   const pr = getPaymentRequestById(id);
   if (!pr) {
-    const ephemeral = usesEphemeralDatabase();
+    const ephemeral = usesEphemeralStorage();
     return (
       <div className="space-y-4 max-w-2xl">
         <h1 className="text-2xl font-bold text-primary">Payment not found</h1>

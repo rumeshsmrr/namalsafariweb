@@ -169,6 +169,13 @@ export default function AdminDashboardShell({
               <h2 className="text-2xl font-bold text-primary">Admin Panel</h2>
               <p className="text-sm text-gray-500 mt-1">Blog & Payments</p>
               <EnvBadge status={envStatus} />
+              {envStatus.ephemeralStorage && (
+                <p className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 leading-snug">
+                  Data is temporary on this host (payments, blogs, uploads). Use
+                  a VPS with <span className="font-mono">DATA_PATH</span> for
+                  production.
+                </p>
+              )}
               {session?.user && (
                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
                   {session.user.image && (

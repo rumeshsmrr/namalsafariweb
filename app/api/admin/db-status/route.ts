@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDb, usesEphemeralDatabase } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { usesEphemeralStorage } from "@/lib/data-path";
 import { apiErrorFromUnknown } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
@@ -21,14 +22,14 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       driver: process.env.VERCEL ? "node:sqlite (Vercel)" : "better-sqlite3",
-      ephemeral: usesEphemeralDatabase(),
+      ephemeral: usesEphemeralStorage(),
       paymentRequestCount: row.count,
     });
   } catch (err) {
     return NextResponse.json(
       {
         ok: false,
-        ephemeral: usesEphemeralDatabase(),
+        ephemeral: usesEphemeralStorage(),
         ...apiErrorFromUnknown(err),
       },
       { status: 500 },

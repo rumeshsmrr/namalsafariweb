@@ -1,6 +1,10 @@
 import path from "path";
-import fs from "fs";
 import type BetterSqlite3 from "better-sqlite3";
+import {
+  ensureDirExists,
+  getWritableDataDir,
+  usesEphemeralStorage,
+} from "@/lib/data-path";
 
 /**
  * Lazy SQLite singleton.
@@ -10,8 +14,7 @@ import type BetterSqlite3 from "better-sqlite3";
  * often fails with "Module did not self-register" on serverless).
  */
 
-const DEFAULT_DB_PATH = path.join(process.cwd(), "data", "app.db");
-const VERCEL_DB_PATH = path.join("/tmp", "nimalsafari-app.db");
+const DEFAULT_DB_PATH = path.join(getWritableDataDir(), "app.db");
 
 export type SqliteStatement = {
   run: (...params: unknown[]) => unknown;
@@ -30,21 +33,16 @@ function resolveDbPath(): string {
   if (process.env.DATABASE_PATH?.trim()) {
     return process.env.DATABASE_PATH.trim();
   }
-  if (process.env.VERCEL) {
-    return VERCEL_DB_PATH;
-  }
   return DEFAULT_DB_PATH;
 }
 
+/** @deprecated Use usesEphemeralStorage from @/lib/data-path */
 export function usesEphemeralDatabase(): boolean {
-  return Boolean(process.env.VERCEL) && !process.env.DATABASE_PATH?.trim();
+  return usesEphemeralStorage();
 }
 
 function ensureDir(filePath: string) {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  ensureDirExists(path.dirname(filePath));
 }
 
 function wrapBetter(db: BetterSqlite3.Database): AppSqliteDatabase {

@@ -1,9 +1,11 @@
 import { resolveAppEnv, type AppEnv } from "@/lib/onepay";
+import { usesEphemeralStorage } from "@/lib/data-path";
 
 export type AdminEnvStatus = {
   appEnv: AppEnv;
   paymentsConfigured: boolean;
   paymentsLive: boolean;
+  ephemeralStorage: boolean;
 };
 
 /** Server-only: whether OnePay env vars are present and if live mode is active. */
@@ -16,5 +18,10 @@ export function getAdminEnvStatus(): AdminEnvStatus {
   );
   const paymentsLive = appEnv === "production" && paymentsConfigured;
 
-  return { appEnv, paymentsConfigured, paymentsLive };
+  return {
+    appEnv,
+    paymentsConfigured,
+    paymentsLive,
+    ephemeralStorage: usesEphemeralStorage(),
+  };
 }

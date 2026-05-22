@@ -207,13 +207,20 @@ The app uses **SQLite** (`better-sqlite3`). Vercel’s serverless filesystem is 
 
 **For admin payment links and OnePay**, deploy on your **VPS** with a persistent `DATABASE_PATH` (see below). If the site is on Vercel today, move the API + DB to the VPS or point `nimalsafari.com` at the VPS.
 
-After deploying the code fix, set on Vercel (temporary only):
+The app now writes payments (SQLite), blogs (`blogs.json`), and uploads to `/tmp/nimalsafari-data` on Vercel automatically so APIs do not 500. **Data is still not reliable** across instances — use a VPS for production.
+
+Optional on Vercel (single folder for everything):
 
 ```env
-DATABASE_PATH=/tmp/nimalsafari-app.db
+DATA_PATH=/tmp/nimalsafari-data
 ```
 
-Redeploy. You should get a clearer error in the admin UI if the DB still fails.
+On VPS (persistent):
+
+```env
+DATA_PATH=/var/lib/nimalsafari/data
+DATABASE_PATH=/var/lib/nimalsafari/data/app.db
+```
 
 ### Environment variables on the server
 

@@ -463,13 +463,12 @@ export default function CreatePaymentLinkPage() {
           >
             {loading ? "Creating..." : "Generate Payment Link"}
           </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg transition-colors"
+          <Link
+            href="/admin/dashboard/payments"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg transition-colors inline-block"
           >
             Cancel
-          </button>
+          </Link>
         </div>
       </form>
     </div>

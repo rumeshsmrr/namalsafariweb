@@ -1,6 +1,11 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { defaultBlogs } from './default-blogs';
+import { promises as fs } from "fs";
+import path from "path";
+import { defaultBlogs } from "./default-blogs";
+import {
+  ensureDirExists,
+  getBlogsFilePath,
+  getWritableDataDir,
+} from "@/lib/data-path";
 
 export interface BlogPost {
   id: number;
@@ -14,74 +19,81 @@ export interface BlogPost {
   readTime: string;
 }
 
-const BLOG_FILE_PATH = path.join(process.cwd(), 'data', 'blogs.json');
-
-// Ensure data directory exists
 async function ensureDataDirectory() {
-  const dataDir = path.join(process.cwd(), 'data');
+  ensureDirExists(getWritableDataDir());
+}
+
+async function seedBlogsFromRepoIfPresent(targetPath: string) {
+  const repoBlogs = path.join(process.cwd(), "data", "blogs.json");
   try {
-    await fs.access(dataDir);
+    await fs.access(repoBlogs);
+    const data = await fs.readFile(repoBlogs, "utf-8");
+    await fs.writeFile(targetPath, data);
   } catch {
-    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(targetPath, JSON.stringify(defaultBlogs, null, 2));
   }
 }
 
-// Initialize with default blogs if file doesn't exist
 async function initializeBlogsFile() {
   await ensureDataDirectory();
-  
+  const blogsPath = getBlogsFilePath();
+
   try {
-    await fs.access(BLOG_FILE_PATH);
+    await fs.access(blogsPath);
   } catch {
-    // File doesn't exist, create with default blogs
-    await fs.writeFile(BLOG_FILE_PATH, JSON.stringify(defaultBlogs, null, 2));
+    await seedBlogsFromRepoIfPresent(blogsPath);
   }
 }
 
 export async function getAllBlogs(): Promise<BlogPost[]> {
   await initializeBlogsFile();
   try {
-    const data = await fs.readFile(BLOG_FILE_PATH, 'utf-8');
-    return JSON.parse(data);
+    const data = await fs.readFile(getBlogsFilePath(), "utf-8");
+    return JSON.parse(data) as BlogPost[];
   } catch (error) {
-    console.error('Error reading blogs:', error);
+    console.error("Error reading blogs:", error);
     return [];
   }
 }
 
 export async function getBlogById(id: number): Promise<BlogPost | null> {
   const blogs = await getAllBlogs();
-  return blogs.find(blog => blog.id === id) || null;
+  return blogs.find((blog) => blog.id === id) || null;
 }
 
-export async function createBlog(blog: Omit<BlogPost, 'id'>): Promise<BlogPost> {
+export async function createBlog(
+  blog: Omit<BlogPost, "id">,
+): Promise<BlogPost> {
   await initializeBlogsFile();
   const blogs = await getAllBlogs();
-  const newId = blogs.length > 0 ? Math.max(...blogs.map(b => b.id)) + 1 : 1;
+  const newId =
+    blogs.length > 0 ? Math.max(...blogs.map((b) => b.id)) + 1 : 1;
   const newBlog: BlogPost = { ...blog, id: newId };
   blogs.push(newBlog);
-  await fs.writeFile(BLOG_FILE_PATH, JSON.stringify(blogs, null, 2));
+  await fs.writeFile(getBlogsFilePath(), JSON.stringify(blogs, null, 2));
   return newBlog;
 }
 
-export async function updateBlog(id: number, updates: Partial<Omit<BlogPost, 'id'>>): Promise<BlogPost | null> {
+export async function updateBlog(
+  id: number,
+  updates: Partial<Omit<BlogPost, "id">>,
+): Promise<BlogPost | null> {
   await initializeBlogsFile();
   const blogs = await getAllBlogs();
-  const index = blogs.findIndex(blog => blog.id === id);
+  const index = blogs.findIndex((blog) => blog.id === id);
   if (index === -1) return null;
-  
+
   blogs[index] = { ...blogs[index], ...updates };
-  await fs.writeFile(BLOG_FILE_PATH, JSON.stringify(blogs, null, 2));
+  await fs.writeFile(getBlogsFilePath(), JSON.stringify(blogs, null, 2));
   return blogs[index];
 }
 
 export async function deleteBlog(id: number): Promise<boolean> {
   await initializeBlogsFile();
   const blogs = await getAllBlogs();
-  const filtered = blogs.filter(blog => blog.id !== id);
+  const filtered = blogs.filter((blog) => blog.id !== id);
   if (filtered.length === blogs.length) return false;
-  
-  await fs.writeFile(BLOG_FILE_PATH, JSON.stringify(filtered, null, 2));
+
+  await fs.writeFile(getBlogsFilePath(), JSON.stringify(filtered, null, 2));
   return true;
 }
-
