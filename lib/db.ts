@@ -60,7 +60,17 @@ function wrapBetter(db: BetterSqlite3.Database): AppSqliteDatabase {
   };
 }
 
-function wrapNode(db: import("node:sqlite").DatabaseSync): AppSqliteDatabase {
+/** Node 22+ built-in sqlite (used on Vercel). */
+type NodeSqliteDatabase = {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => {
+    run: (...params: unknown[]) => unknown;
+    get: (...params: unknown[]) => unknown;
+    all: (...params: unknown[]) => unknown[];
+  };
+};
+
+function wrapNode(db: NodeSqliteDatabase): AppSqliteDatabase {
   return {
     exec: (sql) => {
       db.exec(sql);
@@ -93,7 +103,9 @@ function openDatabase(dbPath: string): AppSqliteDatabase {
   if (process.env.VERCEL) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
+      const { DatabaseSync } = require("node:sqlite") as {
+        DatabaseSync: new (path: string) => NodeSqliteDatabase;
+      };
       return wrapNode(new DatabaseSync(dbPath));
     } catch (err) {
       console.warn(
@@ -104,7 +116,9 @@ function openDatabase(dbPath: string): AppSqliteDatabase {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const Database = require("better-sqlite3") as typeof import("better-sqlite3").default;
+  const Database = require("better-sqlite3") as {
+    new (path: string): BetterSqlite3.Database;
+  };
   return wrapBetter(new Database(dbPath));
 }
 
