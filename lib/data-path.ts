@@ -52,3 +52,21 @@ export function ensureDirExists(dirPath: string): void {
 export function usesEphemeralStorage(): boolean {
   return Boolean(process.env.VERCEL) && !process.env.DATA_PATH?.trim();
 }
+
+/**
+ * On Vercel, SQLite often fails (native module / node:sqlite). Default to JSON
+ * files in the writable data dir. Set PAYMENT_STORAGE=sqlite to force SQLite.
+ */
+export function shouldUseJsonPaymentStorage(): boolean {
+  if (process.env.PAYMENT_STORAGE?.trim() === "sqlite") {
+    return false;
+  }
+  if (process.env.PAYMENT_STORAGE?.trim() === "json") {
+    return true;
+  }
+  return Boolean(process.env.VERCEL);
+}
+
+export function getPaymentsStorePath(): string {
+  return path.join(getWritableDataDir(), "payments-store.json");
+}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getDb } from "@/lib/db";
 import { usesEphemeralStorage } from "@/lib/data-path";
+import { getPaymentStorageDriver } from "@/lib/payment-storage";
 import { apiErrorFromUnknown } from "@/lib/api-error";
 
 export const dynamic = "force-dynamic";
@@ -14,16 +14,25 @@ export async function GET() {
   }
 
   try {
-    const db = getDb();
-    const row = db
-      .prepare("SELECT COUNT(*) AS count FROM payment_requests")
-      .get() as { count: number };
+    const driver = getPaymentStorageDriver();
+    let paymentRequestCount = 0;
+
+    if (driver === "sqlite") {
+      const { getDb } = await import("@/lib/db");
+      const row = getDb()
+        .prepare("SELECT COUNT(*) AS count FROM payment_requests")
+        .get() as { count: number };
+      paymentRequestCount = row.count;
+    } else {
+      const { listPaymentRequests } = await import("@/lib/payment-json-store");
+      paymentRequestCount = listPaymentRequests().length;
+    }
 
     return NextResponse.json({
       ok: true,
-      driver: process.env.VERCEL ? "node:sqlite (Vercel)" : "better-sqlite3",
+      driver: `payments:${driver}`,
       ephemeral: usesEphemeralStorage(),
-      paymentRequestCount: row.count,
+      paymentRequestCount,
     });
   } catch (err) {
     return NextResponse.json(
