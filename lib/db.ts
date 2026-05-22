@@ -19,8 +19,22 @@ import fs from "fs";
 
 const DEFAULT_DB_PATH = path.join(process.cwd(), "data", "app.db");
 
+/** Vercel serverless only allows writes under /tmp — repo `data/` is read-only. */
+const VERCEL_DB_PATH = path.join("/tmp", "nimalsafari-app.db");
+
 function resolveDbPath(): string {
-  return process.env.DATABASE_PATH || DEFAULT_DB_PATH;
+  if (process.env.DATABASE_PATH?.trim()) {
+    return process.env.DATABASE_PATH.trim();
+  }
+  if (process.env.VERCEL) {
+    return VERCEL_DB_PATH;
+  }
+  return DEFAULT_DB_PATH;
+}
+
+/** True when the DB file is not durable across deploys/instances (e.g. Vercel /tmp). */
+export function usesEphemeralDatabase(): boolean {
+  return Boolean(process.env.VERCEL) && !process.env.DATABASE_PATH?.trim();
 }
 
 function ensureDir(filePath: string) {

@@ -201,6 +201,20 @@ Then update `PUBLIC_APP_URL` in `.env.local` to the ngrok HTTPS URL and configur
 
 ## Production Deployment
 
+### Vercel (marketing site only — not recommended for payments)
+
+The app uses **SQLite** (`better-sqlite3`). Vercel’s serverless filesystem is **read-only** except `/tmp`, and `/tmp` is **not shared** across function instances — payment links can disappear or fail unpredictably.
+
+**For admin payment links and OnePay**, deploy on your **VPS** with a persistent `DATABASE_PATH` (see below). If the site is on Vercel today, move the API + DB to the VPS or point `nimalsafari.com` at the VPS.
+
+After deploying the code fix, set on Vercel (temporary only):
+
+```env
+DATABASE_PATH=/tmp/nimalsafari-app.db
+```
+
+Redeploy. You should get a clearer error in the admin UI if the DB still fails.
+
 ### Environment variables on the server
 
 Create one **`.env`** file on the VPS (not in git). Use live credentials and `APP_ENV=production`. Rebuild after changing any `NEXT_PUBLIC_*` variable.

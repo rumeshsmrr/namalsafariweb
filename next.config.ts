@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // better-sqlite3 is a native module and must be bundled as external
   // in both the server runtime and when using Turbopack.
   serverExternalPackages: ["better-sqlite3"],
+  outputFileTracingIncludes: {
+    "/api/**": ["./node_modules/better-sqlite3/**/*"],
+  },
   images: {
     remotePatterns: [
       {

@@ -17,6 +17,7 @@ import {
   normalizeSriLankanPhone,
   SRI_LANKA_PHONE_FORMAT_ERROR,
 } from "@/lib/phone";
+import { formatDatabaseError } from "@/lib/db-error";
 
 export const dynamic = "force-dynamic";
 
@@ -160,8 +161,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(pr, { status: 201 });
   } catch (err) {
     console.error("Create payment request error:", err);
+    const message = formatDatabaseError(err);
     return NextResponse.json(
-      { error: "Failed to create payment request" },
+      { error: message },
       { status: 500 },
     );
   }
