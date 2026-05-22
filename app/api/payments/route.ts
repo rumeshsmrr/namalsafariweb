@@ -20,6 +20,7 @@ import {
 import { formatDatabaseError } from "@/lib/db-error";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
   const session = await auth();

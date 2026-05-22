@@ -23,10 +23,14 @@ export function formatDatabaseError(err: unknown): string {
     );
   }
 
-  if (lower.includes("bindings") || lower.includes("better_sqlite3")) {
+  if (
+    lower.includes("bindings") ||
+    lower.includes("better_sqlite3") ||
+    lower.includes("did not self-register")
+  ) {
     return (
-      "SQLite native module failed to load on this host. Redeploy on a Node server (VPS) " +
-      "rather than serverless, or contact support."
+      "SQLite failed to load on Vercel. Redeploy with Node 22 (see vercel.json) or use a VPS " +
+      "with DATABASE_PATH for persistent storage."
     );
   }
 

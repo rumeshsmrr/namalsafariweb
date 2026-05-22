@@ -1,26 +1,30 @@
-import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import type BetterSqlite3 from "better-sqlite3";
 
 /**
  * Lazy SQLite singleton.
  *
- * We intentionally DO NOT open the connection at module import time. Next.js
- * executes route modules during `next build` (the "collect page data" step)
- * with multiple worker processes — if every worker opened the DB file in
- * WAL mode simultaneously, they would collide (SQLITE_BUSY).
- *
- * Instead, `getDb()` opens the connection on first real use (i.e. at request
- * time), which guarantees only the running server process holds it.
- *
- * Production DB location is controlled by DATABASE_PATH so it can live
- * outside the repo (e.g. /var/lib/nimalsafari/data/app.db on the VPS).
+ * Local / VPS: better-sqlite3 (file under data/ or DATABASE_PATH).
+ * Vercel: Node 22 built-in node:sqlite (no native .node binary — better-sqlite3
+ * often fails with "Module did not self-register" on serverless).
  */
 
 const DEFAULT_DB_PATH = path.join(process.cwd(), "data", "app.db");
-
-/** Vercel serverless only allows writes under /tmp — repo `data/` is read-only. */
 const VERCEL_DB_PATH = path.join("/tmp", "nimalsafari-app.db");
+
+export type SqliteStatement = {
+  run: (...params: unknown[]) => unknown;
+  get: (...params: unknown[]) => unknown;
+  all: (...params: unknown[]) => unknown[];
+};
+
+export type AppSqliteDatabase = {
+  exec: (sql: string) => void;
+  pragma: (pragma: string) => void;
+  prepare: (sql: string) => SqliteStatement;
+  transaction: (fn: () => void) => () => void;
+};
 
 function resolveDbPath(): string {
   if (process.env.DATABASE_PATH?.trim()) {
@@ -32,7 +36,6 @@ function resolveDbPath(): string {
   return DEFAULT_DB_PATH;
 }
 
-/** True when the DB file is not durable across deploys/instances (e.g. Vercel /tmp). */
 export function usesEphemeralDatabase(): boolean {
   return Boolean(process.env.VERCEL) && !process.env.DATABASE_PATH?.trim();
 }
@@ -44,7 +47,68 @@ function ensureDir(filePath: string) {
   }
 }
 
-function initialize(db: Database.Database) {
+function wrapBetter(db: BetterSqlite3.Database): AppSqliteDatabase {
+  return {
+    exec: (sql) => {
+      db.exec(sql);
+    },
+    pragma: (p) => {
+      db.pragma(p);
+    },
+    prepare: (sql) => db.prepare(sql) as SqliteStatement,
+    transaction: (fn) => db.transaction(fn),
+  };
+}
+
+function wrapNode(db: import("node:sqlite").DatabaseSync): AppSqliteDatabase {
+  return {
+    exec: (sql) => {
+      db.exec(sql);
+    },
+    pragma: (p) => {
+      db.exec(`PRAGMA ${p}`);
+    },
+    prepare: (sql) => {
+      const stmt = db.prepare(sql);
+      return {
+        run: (...params: unknown[]) => stmt.run(...params),
+        get: (...params: unknown[]) => stmt.get(...params),
+        all: (...params: unknown[]) => stmt.all(...params) as unknown[],
+      };
+    },
+    transaction: (fn) => () => {
+      db.exec("BEGIN IMMEDIATE");
+      try {
+        fn();
+        db.exec("COMMIT");
+      } catch (err) {
+        db.exec("ROLLBACK");
+        throw err;
+      }
+    },
+  };
+}
+
+function openDatabase(dbPath: string): AppSqliteDatabase {
+  if (process.env.VERCEL) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { DatabaseSync } = require("node:sqlite") as typeof import("node:sqlite");
+      return wrapNode(new DatabaseSync(dbPath));
+    } catch (err) {
+      console.warn(
+        "[db] node:sqlite unavailable; ensure Node 22 on Vercel. Falling back to better-sqlite3.",
+        err,
+      );
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Database = require("better-sqlite3") as typeof import("better-sqlite3").default;
+  return wrapBetter(new Database(dbPath));
+}
+
+function initialize(db: AppSqliteDatabase) {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   db.pragma("synchronous = NORMAL");
@@ -96,8 +160,6 @@ function initialize(db: Database.Database) {
       ON payments(payment_request_id);
   `);
 
-  // Idempotent column additions for existing DBs created before these
-  // columns were introduced. Safe to re-run on every startup.
   const cols = db
     .prepare("PRAGMA table_info(payment_requests)")
     .all() as { name: string }[];
@@ -128,15 +190,18 @@ function initialize(db: Database.Database) {
   }
 }
 
-type GlobalWithDb = typeof globalThis & { __nimalDb?: Database.Database };
+type GlobalWithDb = typeof globalThis & { __nimalDb?: AppSqliteDatabase };
 const g = globalThis as GlobalWithDb;
 
-export function getDb(): Database.Database {
+export function getDb(): AppSqliteDatabase {
   if (g.__nimalDb) return g.__nimalDb;
   const dbPath = resolveDbPath();
   ensureDir(dbPath);
-  const db = new Database(dbPath);
+  const db = openDatabase(dbPath);
   initialize(db);
   g.__nimalDb = db;
   return db;
 }
+
+/** @deprecated Use AppSqliteDatabase — kept for any external imports */
+export type Database = AppSqliteDatabase;
