@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files — one file per machine (.env.local locally, .env on servers)
 .env*
+env.production.example
 
 # vercel
 .vercel

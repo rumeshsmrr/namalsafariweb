@@ -201,6 +201,8 @@ Then update `PUBLIC_APP_URL` in `.env.local` to the ngrok HTTPS URL and configur
 
 ## Production Deployment
 
+**Recommended:** Hostinger KVM VPS with CI/CD. See **[docs/HOSTINGER-CICD.md](docs/HOSTINGER-CICD.md)** (deploy + GitHub Actions), **[docs/VPS-DEPLOY.md](docs/VPS-DEPLOY.md)**, and **`env.production.example`** → **`.env`** on the server.
+
 ### Vercel (marketing site only — not recommended for payments)
 
 The app uses **SQLite** (`better-sqlite3`). Vercel’s serverless filesystem is **read-only** except `/tmp`, and `/tmp` is **not shared** across function instances — payment links can disappear or fail unpredictably.
@@ -224,38 +226,16 @@ DATABASE_PATH=/var/lib/nimalsafari/data/app.db
 
 ### Environment variables on the server
 
-Create one **`.env`** file on the VPS (not in git). Use live credentials and `APP_ENV=production`. Rebuild after changing any `NEXT_PUBLIC_*` variable.
-
-```env
-APP_ENV=production
-NEXT_PUBLIC_APP_ENV=production
-PUBLIC_APP_URL=https://nimalsafari.com
-NEXT_PUBLIC_WHATSAPP_NUMBER=94767627295
-
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-AUTH_SECRET=...
-ADMIN_ALLOWED_EMAILS=admin@gmail.com
-
-RESEND_API_KEY=re_...
-EMAIL_FROM=Nimal Safari <bookings@nimalsafari.com>
-
-DATABASE_PATH=/var/lib/nimalsafari/data/app.db
-
-ONEPAY_APP_ID=<live-app-id>
-ONEPAY_APP_TOKEN=<live-app-token>
-ONEPAY_HASH_SALT=<live-hash-salt>
-# Do not set ONEPAY_ALLOW_HTTP_REDIRECT in production
-```
-
-### Build & start
+Copy **`env.production.example`** to **`.env`** on the VPS and fill in real values. Full deploy steps: **[docs/VPS-DEPLOY.md](docs/VPS-DEPLOY.md)**.
 
 ```bash
+cp env.production.example .env
+nano .env
 npm run build
-npm run start
+pm2 start ecosystem.config.cjs
 ```
 
-> The SQLite database file is stored at `./data/app.db` by default. Make sure this path is on a persistent volume (not ephemeral storage) when deploying to containerised environments like Docker or Railway.
+> Production data lives under `DATA_PATH` (default in template: `/var/lib/nimalsafari/data`). Redeploying the app does not delete that folder.
 
 ---
 
