@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,8 +10,15 @@ import {
   FiTrash2,
   FiChevronLeft,
   FiChevronRight,
+  FiX,
 } from "react-icons/fi";
 import { Spinner, SkTableRow } from "@/app/Components/Skeleton";
+import PaymentLinkCopy from "./[id]/PaymentLinkCopy";
+import {
+  type PaymentCreatedFlash,
+  readPaymentCreatedFlash,
+  clearPaymentCreatedFlash,
+} from "@/lib/payment-created-flash";
 
 interface PaymentRequest {
   id: string;
@@ -75,6 +82,35 @@ function PaymentsContent() {
   const [searchInput, setSearchInput] = useState(search);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [createdFlash, setCreatedFlash] = useState<PaymentCreatedFlash | null>(
+    null,
+  );
+  const successBannerRef = useRef<HTMLDivElement>(null);
+
+  const dismissCreatedFlash = useCallback(() => {
+    clearPaymentCreatedFlash();
+    setCreatedFlash(null);
+    if (searchParams.get("created")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("created");
+      const q = params.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname);
+    }
+  }, [searchParams, pathname, router]);
+
+  useEffect(() => {
+    if (searchParams.get("created") !== "1") return;
+    const flash = readPaymentCreatedFlash();
+    if (flash) setCreatedFlash(flash);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!createdFlash || !successBannerRef.current) return;
+    successBannerRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [createdFlash]);
 
   // Push updated URL params (resets to page 1 for filter/search changes)
   const pushParam = useCallback(
@@ -178,6 +214,49 @@ function PaymentsContent() {
         </div>
       </div>
 
+      {createdFlash && (
+        <div
+          ref={successBannerRef}
+          className="bg-green-50 border border-green-200 rounded-xl p-6 space-y-4"
+          role="status"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-green-900">
+                Payment link created for {createdFlash.customerName}
+              </h2>
+              <p className="text-sm text-green-800 mt-1">
+                Copy the link below and send it to your customer. The new entry
+                is highlighted in the table.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={dismissCreatedFlash}
+              className="p-1.5 rounded-lg text-green-800 hover:bg-green-100 transition-colors shrink-0"
+              aria-label="Dismiss"
+            >
+              <FiX size={20} />
+            </button>
+          </div>
+          <PaymentLinkCopy url={createdFlash.payUrl} />
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link
+              href={`/admin/dashboard/payments/${createdFlash.id}`}
+              className="text-sm font-semibold text-accent hover:underline"
+            >
+              View details
+            </Link>
+            <Link
+              href="/admin/dashboard/payments/create"
+              className="text-sm font-semibold text-gray-600 hover:underline"
+            >
+              Create another
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Search + Filter bar */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[220px]">
@@ -243,7 +322,11 @@ function PaymentsContent() {
                 rows.map((r) => (
                   <tr
                     key={r.id}
-                    className="border-t border-gray-100 hover:bg-gray-50 transition-colors"
+                    className={`border-t border-gray-100 hover:bg-gray-50 transition-colors ${
+                      createdFlash?.id === r.id
+                        ? "bg-green-50/80 ring-1 ring-inset ring-green-200"
+                        : ""
+                    }`}
                   >
                     <td className="px-4 py-3 font-medium text-gray-800">
                       {r.customerName}

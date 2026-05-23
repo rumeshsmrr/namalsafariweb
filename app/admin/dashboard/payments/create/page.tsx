@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import PaymentLinkCopy from "../[id]/PaymentLinkCopy";
+import { useRouter } from "next/navigation";
 import {
   normalizeSriLankanPhone,
   SRI_LANKA_PHONE_FORMAT_ERROR,
 } from "@/lib/phone";
+import { savePaymentCreatedFlash } from "@/lib/payment-created-flash";
 
 const PARK_OPTIONS = [
   { value: "YALA", label: "Yala National Park" },
@@ -36,18 +37,11 @@ const MEAL_PREFERENCE_OPTIONS = [
   { value: "NON_VEG", label: "Non-Vegetarian" },
 ] as const;
 
-type CreatedPayment = {
-  id: string;
-  token: string;
-  customerName: string;
-};
-
 export default function CreatePaymentLinkPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
-  const [created, setCreated] = useState<CreatedPayment | null>(null);
-  const [publicPayUrl, setPublicPayUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     customerName: "",
     email: "",
@@ -77,8 +71,6 @@ export default function CreatePaymentLinkPage() {
     e.preventDefault();
     setError(null);
     setErrorDetail(null);
-    setCreated(null);
-    setPublicPayUrl(null);
 
     if (!form.park) {
       setError("Please select a park.");
@@ -130,14 +122,28 @@ export default function CreatePaymentLinkPage() {
         );
         return;
       }
-      const base =
-        typeof window !== "undefined" ? window.location.origin : "";
-      setCreated({
+
+      if (
+        typeof data.id !== "string" ||
+        typeof data.token !== "string" ||
+        typeof data.customerName !== "string"
+      ) {
+        setError("Payment was created but the server response was incomplete.");
+        setErrorDetail("Missing id, token, or customerName in API response.");
+        return;
+      }
+
+      const base = window.location.origin;
+      const payUrl = `${base}/pay/${data.token}`;
+
+      savePaymentCreatedFlash({
         id: data.id,
         token: data.token,
         customerName: data.customerName,
+        payUrl,
       });
-      setPublicPayUrl(`${base}/pay/${data.token}`);
+
+      router.push("/admin/dashboard/payments?created=1&page=1");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
       setErrorDetail(null);
@@ -157,44 +163,6 @@ export default function CreatePaymentLinkPage() {
           can share with the customer manually (WhatsApp, email, SMS).
         </p>
       </div>
-
-      {created && publicPayUrl && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-bold text-green-900">
-            Payment link created for {created.customerName}
-          </h2>
-          <p className="text-sm text-green-800">
-            Copy the link below and send it to the customer (WhatsApp, email, SMS).
-            On Vercel hosting, open this page again from the list may not work — save
-            the link now.
-          </p>
-          <PaymentLinkCopy url={publicPayUrl} />
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link
-              href={`/admin/dashboard/payments/${created.id}`}
-              className="text-sm font-semibold text-accent hover:underline"
-            >
-              View details (may not load on Vercel)
-            </Link>
-            <Link
-              href="/admin/dashboard/payments"
-              className="text-sm font-semibold text-gray-600 hover:underline"
-            >
-              All payments
-            </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setCreated(null);
-                setPublicPayUrl(null);
-              }}
-              className="text-sm font-semibold text-gray-600 hover:underline"
-            >
-              Create another
-            </button>
-          </div>
-        </div>
-      )}
 
       <form
         onSubmit={submit}
@@ -461,7 +429,7 @@ export default function CreatePaymentLinkPage() {
             disabled={loading}
             className="bg-accent hover:bg-accent/90 text-muted font-semibold px-6 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Creating..." : "Generate Payment Link"}
+            {loading ? "Creating…" : "Generate Payment Link"}
           </button>
           <Link
             href="/admin/dashboard/payments"
