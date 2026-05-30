@@ -506,7 +506,7 @@ function Popular(): React.JSX.Element {
 
                   <div className="pt-1">
                     <span className="card-button inline-flex items-center gap-1 bg-accent/90 hover:bg-accent text-muted font-medium py-1.5 px-3 sm:py-2 sm:px-4 rounded-full transition-all duration-300 text-xs sm:text-sm backdrop-blur-sm">
-                      Learn More
+                      Packages
                       <svg
                         className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:translate-x-1"
                         fill="none"
